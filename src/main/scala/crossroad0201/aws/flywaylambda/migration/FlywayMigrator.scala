@@ -8,18 +8,9 @@ import scala.util.{Failure, Success, Try}
 trait FlywayMigrator {
 
   def migrate(deployment: FlywayDeployment) = {
-    val flyway = new Flyway
+    val flyway = new Flyway(deployment.flywayConfig)
 
     val appliedCount = Try {
-      flyway.setDataSource(
-        deployment.url,
-        deployment.user,
-        deployment.password
-      )
-      flyway.setLocations(deployment.location)
-
-      deployment.options.map(_.apply(flyway))
-
       flyway.migrate
     }
 
@@ -27,11 +18,12 @@ trait FlywayMigrator {
       flyway.info.all
     }
 
+    val url = deployment.flywayConfig.getDataSource.getConnection.getMetaData.getURL
     (appliedCount, migrationInfos) match {
-      case (Success(c), Success(is)) => MigrationResult.success(deployment.url, c, is.map(MigrationInfo(_)))
-      case (Success(c), Failure(e)) => MigrationResult.failure(deployment.url, e, Seq())
-      case (Failure(e), Success(is)) => MigrationResult.failure(deployment.url, e, is.map(MigrationInfo(_)))
-      case (Failure(e1), Failure(e2)) => MigrationResult.failure(deployment.url, e1, Seq())
+      case (Success(c), Success(is)) => MigrationResult.success(url, c, is.map(MigrationInfo(_)))
+      case (Success(c), Failure(e)) => MigrationResult.failure(url, e, Seq())
+      case (Failure(e), Success(is)) => MigrationResult.failure(url, e, is.map(MigrationInfo(_)))
+      case (Failure(e1), Failure(e2)) => MigrationResult.failure(url, e1, Seq())
     }
   }
 

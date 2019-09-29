@@ -49,11 +49,11 @@ trait S3MigrationHandlerBase extends FlywayMigrator {
       _ = {
         logger.log(
           s"""--- Flyway configuration ------------------------------------
-             |flyway.url      = ${d.url}
+             |flyway.url      = ${d.flywayConfig.getDataSource.getConnection.getMetaData.getURL}
              |flyway.user     = ****
              |flyway.password = ****
              |
-             |SQL locations   = ${d.location}
+             |SQL locations   = ${d.flywayConfig.getLocations.mkString(", ")}
              |SQL files       = ${d.sqlFiles.mkString(", ")}
              |-------------------------------------------------------------
               """.stripMargin)
