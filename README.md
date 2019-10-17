@@ -12,6 +12,8 @@ This Lambda function is supporting 2 migration methods.
 1. Automatic migration by put SQL file into S3.
 1. Manual migration by invoking yourself. (Since 0.2.0)
 
+Currently, this project uses **Flyway 6**.
+
 # Setup
 
 ## S3 bucket
@@ -30,21 +32,15 @@ s3://my-flyway             <- Flyway migration bucket.
 
 ### Flyway configuration
 
-create Flyway configuration file named `flyway.conf` in resource folder.
+Create a Flyway configuration file named `flyway.conf` in the resource folder. 
+The file is fed directly to Flyway so all [configuration options listed on the docs page](https://flywaydb.org/documentation/configfiles) are supported.
 
+At the very least, these options must be provided:
 ```
 flyway.url = jdbc:mysql://RDS_ENDPOINT/DATABSE_NAME
 flyway.user = USER_NAME
 flyway.password = PASSWORD
 ```
-
-#### Supported options.
-
-See [Flyway - Config Files](https://flywaydb.org/documentation/configfiles) for option details.
-
-* `flyway.outOfOrder`
-* `flyway.schemas`
-* `flyway.cleanOnValidationError`
 
 ## AWS Settings
 

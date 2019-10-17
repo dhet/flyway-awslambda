@@ -10,7 +10,7 @@ lazy val flywayAwsLambda = (project in file(".")).settings(
 
   libraryDependencies ++= Seq(
     // Flyway
-    "org.flywaydb" % "flyway-core" % "4.0.3",
+    "org.flywaydb" % "flyway-core" % "6.0.4",
     "mysql" % "mysql-connector-java" % "6.0.5", // Flyway supports only Ver.6 higher.
 
     // AWS
