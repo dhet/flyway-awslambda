@@ -89,7 +89,7 @@ Require policies.
 
 * AmazonRDSFullAccess
 * AmazonS3FullAccess
-* AmazonLambdaVPCAccessExecutionRole
+* AWSLambdaVPCAccessExecutionRole
 
 ### Triggers
 
