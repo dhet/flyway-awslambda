@@ -12,7 +12,7 @@ This Lambda function is supporting 2 migration methods.
 1. Automatic migration by put SQL file into S3.
 1. Manual migration by invoking yourself. (Since 0.2.0)
 
-Currently, this project uses **Flyway 6** and only supports **MySQL**.
+Currently, this project uses **Flyway 6**.
 
 # Setup
 
