@@ -85,7 +85,7 @@ Require policies.
 
 * AmazonRDSFullAccess
 * AmazonS3FullAccess
-* AmazonLambdaVPCAccessExecutionRole
+* AWSLambdaVPCAccessExecutionRole
 
 ### Triggers
 
@@ -118,6 +118,17 @@ Create **flyway-awslambda** function.
 
 * Require delete ENI(Elastic Network Interface) entry for VPC Lambda before delete stack `1-rds.yaml`.  
 A ENI entry for VPC Lambda create by stack `2-flyway-awslambda.yaml`, but this ENI entry does not delete automatically.
+
+
+# Supported Databases
+Only MySQL is supported out of the box. If another database is used it is recommended to make use of [Lambda Layers](https://docs.aws.amazon.com/lambda/latest/dg/configuration-layers.html).
+
+Here's how to:
+* Download the desired database driver's JAR file
+* Zip the JAR such that the jar is located in the java/lib folder, e.g. `java/lib/postgresql-42.2.6.jre7`
+* Create the Lambda layer (select the "Java 8" runtime) and assign it to the Lambda
+
+An example cloudformation template demonstrating a PostgreSQL setup via Lambda layers can be found in [/src/main/aws/3-postgres.yaml](./src/main/aws/3-postgres.yaml).
 
 # Run
 

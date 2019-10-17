@@ -1,0 +1,109 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Create flyway-awslambda function.
+
+# Example demonstrating flyway-awslambda for PostgreSQL using Lambda layers
+#
+# Assumes the following S3 bucket structure:
+# s3://MigrationBucket
+#   |- /my-application
+#   |  '- flyway.conf
+#   |  '- V1__migrationv1.sql
+#   |- postgres-driver.zip
+#   |  '- java
+#   |    '- lib
+#   |      '- postgresql-42.2.6.jre7.jar
+#   '- flyway-awslambda.jar
+#
+
+Parameters:
+  JdbcUrl:
+    Type: String
+  SubnetA:
+    Type: AWS::EC2::Subnet::Id
+  SubnetB:
+    Type: AWS::EC2::Subnet::Id
+  SubnetC:
+    Type: AWS::EC2::Subnet::Id
+  MigrationBucket:
+    Type: String
+  SecurityGroupId:
+    Type: String
+
+Resources:
+  PostgresLambdaLayer:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      LayerName: postgres-jdbc-driver
+      CompatibleRuntimes:
+      - java8
+      Description: Postgres JDBC drivers
+      Content:
+        S3Bucket:
+          Ref: MigrationBucket
+        S3Key: postgres-driver.zip
+
+  PostgresMigrationLambda:
+    Type : AWS::Lambda::Function
+    Properties:
+      FunctionName: flyway-awslambda
+      Description: Performs a Flyway migration on a given RDS database. Pulls migration files from S3
+      Code:
+        S3Bucket:
+          Ref: MigrationBucket
+        S3Key: flyway-awslambda.jar
+      Layers:
+      - Ref: PostgresLambdaLayer
+      Handler: crossroad0201.aws.flywaylambda.InvokeMigrationHandler::handleRequest
+      Role:
+        Fn::GetAtt:
+        - MigrationRole
+        - Arn
+      Runtime: java8
+      MemorySize: 512
+      Timeout: 30
+      VpcConfig:
+        SecurityGroupIds:
+        - Ref: SecurityGroupId
+        SubnetIds:
+        - Ref: SubnetA
+        - Ref: SubnetB
+        - Ref: SubnetC
+
+  MigrationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: flyway-awslambda
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: Allow
+          Action:
+          - sts:AssumeRole
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+      Path: /
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AmazonS3FullAccess
+      - arn:aws:iam::aws:policy/AmazonRDSFullAccess
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+
+  AWSLambdaBasicExecutionPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: AWSLambdaBasicExecutionPolicyFlywayLambda
+      Roles:
+      - Ref: MigrationRole
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+        - Effect: Allow
+          Action: logs:CreateLogGroup
+          Resource: arn:aws:logs:REGION:XXX:*
+        - Effect: Allow
+          Action:
+          - logs:CreateLogStream
+          - logs:PutLogEvents
+          Resource:
+          - arn:aws:logs:REGION:XXX:log-group:/aws/lambda/flyway-awslambda:*
+
