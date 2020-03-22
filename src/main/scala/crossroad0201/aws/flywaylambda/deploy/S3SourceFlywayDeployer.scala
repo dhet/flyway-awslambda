@@ -26,7 +26,7 @@ class S3SourceFlywayDeployer(s3Client: AmazonS3, srcBucketName: String, srcPrefi
         val o = s3Client.getObject(srcBucketName, key)
         val props = new JProperties
         props.load(o.getObjectContent)
-        logger.log(s"Flyway configuration loaded. s3://$srcBucketName/$key")
+        logger.log(s"Flyway configuration loaded from file. s3://$srcBucketName/$key")
         (Some(props), acc._2)
       }
       def createDir(key: String) = {
@@ -65,16 +65,13 @@ class S3SourceFlywayDeployer(s3Client: AmazonS3, srcBucketName: String, srcPrefi
 
     logger.log(s"Deploying Flyway resources from $srcBucketName/$srcPrefix... ${objectSummaries.map(_.getKey).mkString(", ")}")
 
-    deployInternal(objectSummaries, (None, ListBuffer())) match {
-      case (Some(conf), sqlFiles) =>
-        FlywayDeployment(
-          srcBucketName,
-          srcPrefix,
-          conf,
-          s"filesystem:${Paths.get(tmpDir.toString, srcPrefix).toString}",
-          sqlFiles)
-      case _ => throw new IllegalStateException(s"$flywayConfFileName does not exists.")
-    }
+    val deploymentResult: (Option[JProperties], Seq[Path]) = deployInternal(objectSummaries, (None, ListBuffer()))
+    FlywayDeployment(
+      srcBucketName,
+      srcPrefix,
+      deploymentResult._1,
+      s"filesystem:${Paths.get(tmpDir.toString, srcPrefix).toString}",
+      deploymentResult._2)
   }
 
 }

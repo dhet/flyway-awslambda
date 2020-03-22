@@ -30,34 +30,9 @@ trait S3MigrationHandlerBase extends FlywayMigrator {
   protected def migrate(bucketName: String, prefix: String, flywayConfFileName: String = "flyway.conf")(implicit context: Context, s3Client: AmazonS3): Try[ResultJson] = {
     val logger = context.getLogger
 
-    def resultJson(result: MigrationResult): ResultJson = {
-      import MigrationResultProtocol._
-      import spray.json._
-
-      result.toJson.prettyPrint
-    }
-
-    def storeResult(deployment: FlywayDeployment, result: MigrationResult): ResultStoredPath = {
-      val jsonPath = s"${deployment.sourcePrefix}/migration-result.json"
-      s3Client.putObject(deployment.sourceBucket, jsonPath, resultJson(result))
-      jsonPath
-    }
-
     for {
       // Deploy Flyway resources.
       d <- new S3SourceFlywayDeployer(s3Client, bucketName, prefix, flywayConfFileName).deploy
-      _ = {
-        logger.log(
-          s"""--- Flyway configuration ------------------------------------
-             |flyway.url      = ${d.flywayConfig.getDataSource.getConnection.getMetaData.getURL}
-             |flyway.user     = ****
-             |flyway.password = ****
-             |
-             |SQL locations   = ${d.flywayConfig.getLocations.mkString(", ")}
-             |SQL files       = ${d.sqlFiles.mkString(", ")}
-             |-------------------------------------------------------------
-              """.stripMargin)
-      }
 
       // Migrate DB.
       r = migrate(d)
@@ -69,10 +44,23 @@ trait S3MigrationHandlerBase extends FlywayMigrator {
       }
 
       // Store migration result.
-      storedPath = storeResult(d, r)
+      storedPath = storeResult(s3Client, d, r)
       _ = logger.log(s"Migration result stored to $bucketName/$storedPath.")
 
     } yield resultJson(r)
+  }
+
+  private def resultJson(result: MigrationResult): ResultJson = {
+    import MigrationResultProtocol._
+    import spray.json._
+
+    result.toJson.prettyPrint
+  }
+
+  private def storeResult(s3Client: AmazonS3, deployment: FlywayDeployment, result: MigrationResult): ResultStoredPath = {
+    val jsonPath = s"${deployment.sourcePrefix}/migration-result.json"
+    s3Client.putObject(deployment.sourceBucket, jsonPath, resultJson(result))
+    jsonPath
   }
 
 }

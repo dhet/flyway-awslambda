@@ -14,35 +14,14 @@ class InvokeMigrationHandler extends RequestStreamHandler with S3MigrationHandle
   type Prefix = String
   type ConfFileName = String
 
-  override def handleRequest(input: InputStream, output: OutputStream, context: Context): Unit = {
-    def parseInput: Try[(BucketName, Prefix, ConfFileName)] = Try {
-      import spray.json._
-      import DefaultJsonProtocol._
+  implicit val s3Client: AmazonS3 = new AmazonS3Client().withRegion(Region.getRegion(Regions.fromName(sys.env("AWS_REGION"))))
 
-      val json = new BufferedSource(input)(Codec("UTF-8")).mkString
-      val jsObj = JsonParser(json).toJson.asJsObject
-      jsObj.getFields(
-        "bucket_name",
-        "prefix"
-      ) match {
-        case Seq(JsString(b), JsString(p)) => {
-          jsObj.getFields(
-            "flyway_conf"
-          ) match {
-            case Seq(JsString(c)) => (b, p, c)
-            case _ => (b, p, "flyway.conf")
-          }
-        }
-        case _ => throw new IllegalArgumentException(s"Missing require key [bucketName, prefix]. - $json")
-      }
-    }
+  override def handleRequest(input: InputStream, output: OutputStream, context: Context): Unit = {
 
     val logger = context.getLogger
 
-    implicit val s3Client: AmazonS3 = new AmazonS3Client().withRegion(Region.getRegion(Regions.fromName(sys.env("AWS_REGION"))))
-
     (for {
-      i <- parseInput
+      i <- parseJson(input)
       _ = { logger.log(s"Flyway migration start. by invoke lambda function(${i._1}, ${i._2}, ${i._3}).") }
       r <- migrate(i._1, i._2, i._3)(context, s3Client)
     } yield r) match {
@@ -57,6 +36,28 @@ class InvokeMigrationHandler extends RequestStreamHandler with S3MigrationHandle
         val w = new PrintWriter(output)
         w.write(e.toString)
         w.flush()
+    }
+  }
+
+  private def parseJson(input: InputStream): Try[(BucketName, Prefix, ConfFileName)] = Try {
+    import spray.json._
+    import DefaultJsonProtocol._
+
+    val json = new BufferedSource(input)(Codec("UTF-8")).mkString
+    val jsObj = JsonParser(json).toJson.asJsObject
+    jsObj.getFields(
+      "bucket_name",
+      "prefix"
+    ) match {
+      case Seq(JsString(bucketName), JsString(prefix)) => {
+        jsObj.getFields(
+          "flyway_conf"
+        ) match {
+          case Seq(JsString(c)) => (bucketName, prefix, c)
+          case _ => (bucketName, prefix, "flyway.conf")
+        }
+      }
+      case _ => throw new IllegalArgumentException(s"Missing require key [bucketName, prefix]. - $json")
     }
   }
 

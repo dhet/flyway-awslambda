@@ -1,0 +1,28 @@
+{
+  "last_status": "SUCCESS",
+  "infos": [{
+    "state": "BASELINE",
+    "description": "<< Flyway Baseline >>",
+    "version": "1",
+    "type": "BASELINE",
+    "execTime": 0,
+    "installedAt": "2019-09-30T13:30:16Z"
+  }, {
+    "state": "SUCCESS",
+    "description": "Update",
+    "version": "02",
+    "type": "SQL",
+    "execTime": 6,
+    "installedAt": "2019-09-30T13:30:16Z"
+  }, {
+    "state": "SUCCESS",
+    "description": "anotherUpdate",
+    "version": "03",
+    "type": "SQL",
+    "execTime": 6,
+    "installedAt": "2019-09-30T13:33:17Z"
+  }],
+  "appliedCount": 0,
+  "rdsUrl": "jdbc:postgresql://tdu9t64jd8f899.cftgn30ixzkp.eu-central-1.rds.amazonaws.com:5432/TsrCampaignState",
+  "message": "Migration success"
+}
