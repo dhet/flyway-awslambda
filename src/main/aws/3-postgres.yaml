@@ -5,14 +5,14 @@ Description: Create flyway-awslambda function.
 #
 # Assumes the following S3 bucket structure:
 # s3://MigrationBucket
-#   |- /my-application
-#   |  '- flyway.conf
-#   |  '- V1__migrationv1.sql
-#   |- postgres-driver.zip
-#   |  '- java
-#   |    '- lib
-#   |      '- postgresql-42.2.6.jre7.jar
-#   '- flyway-awslambda.jar
+#   |____ /my-application
+#   |  |____ flyway.conf
+#   |  |____ V1__migrationv1.sql
+#   |____ flyway-awslambda.jar
+#   |____ postgres-driver.zip
+#      |____ java
+#         |____ lib
+#            |____ postgresql-42.2.6.jre7.jar
 #
 
 Parameters:
