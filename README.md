@@ -1,151 +1,80 @@
-Flyway AWS Lambda function.
-===========================
- 
-# What's this?
+# Flyway AWS Lambda Function
 
-Lambda function for AWS RDS Migration using [Flyway](https://flywaydb.org).
+**Run Flyway database migrations as a Lambda function.**
 
-EC2 instance is not necessary for DB migration.
+> ℹ️ This fork of the (seemingly abandonded) [flyway-awslambda](crossroad0201/flyway-awslambda) project introduces 
+>the following improvements:
+>* The Lambda function can be configured via environment variables
+>* **All** Flyway configuration options are supported
+>* Upgrade Flyway to version 6
+>* Improved documentation and examples
+>
+>Other than possible breaking changes between Flyway 4 vs. 6 (I couldn't identify any) the Lambda function itself is 
+>100% backwards compatible with the original project.
 
-This Lambda function is supporting 2 migration methods.
+## How it works
+![](docs/images/flyway-lambda.svg)
 
-1. Automatic migration by put SQL file into S3.
-1. Manual migration by invoking yourself. (Since 0.2.0)
+1. The Lambda function is triggered either
+    * by invoking it manually
+    * or automatically when a file is uploaded into an S3 bucket
+2. The migration scripts are loaded from the bucket
+3. The migrations are performed on the database
+4. A file containing the migration results is pushed to the bucket
 
-Currently, this project uses **Flyway 6**.
+## Setup
+*Cloudformation samples can be found under `./src/main/aws/`. Read on for the manual setup.* 
 
-# Setup
+First, create a new Lambda function and upload the flyway-awslambda-x.y.z.jar file as code. You can either download a pre-built
+JAR file from the releases or build it yourself (Scala is required):
 
-## S3 bucket
-
-Create S3 bucket and folder for Flyway resources.
- 
-### Bucket structure
-
-```
-s3://my-flyway             <- Flyway migration bucket.
-  - /my-application        <- Flyway resource folder(prefix).
-    - flyway.conf          <- Flyway configuration file.
-    - V1__create_foo.sql   <- SQL file(s)
-    - V2__create_bar.sql
-```
-
-### Flyway configuration
-
-Create a Flyway configuration file named `flyway.conf` in the resource folder. 
-The file is fed directly to Flyway so all [configuration options listed on the docs page](https://flywaydb.org/documentation/configfiles) are supported.
-
-At the very least, these options must be provided:
-```
-flyway.url = jdbc:mysql://RDS_ENDPOINT/DATABSE_NAME
-flyway.user = USER_NAME
-flyway.password = PASSWORD
-```
-
-## AWS Settings
-
-### VPC Endpoint 
-
-Require [VPC Endpoint](http://docs.aws.amazon.com/AmazonVPC/latest/UserGuide/vpc-endpoints.html) for access to S3 Bucket from Lambda function in VPC.
-
-
-## Deploy Lambda function
-
-### Code
-
-* Download jar module from releases
-  * Or build from source.(Require JDK, Scala, sbt)
 ```
 sbt assembly
 ```
 
-* Upload `flyway-awslambda-x.x.x.jar`.
+### Settings
 
-### Configuration
+* **Runtime:** *Java 8*
+* **Handler:** 
+    * "crossroad0201.aws.flywaylambda.S3EventMigrationHandler" if the Lambda should be triggered when a file is uploaded to the bucket
+    * "crossroad0201.aws.flywaylambda.InvokeMigrationHandler" if you wish to invoke the Lambda manually
+* **Role:** 
+    * AmazonRDSFullAccess
+    * AmazonS3FullAccess
+    * AWSLambdaVPCAccessExecutionRole
+* **VPC:** *Same VPC as the target RDS*
 
-||value|
-|----|----|
-|Runtime|`Java 8`|
-|Handler|See `Handler` section.|
-|Role|See `Role` section.|
-|Timeout|`5 min.`|
-|VPC|Same VPC as target RDS.|
+### Triggers (in case of S3EventMigrationHandler)
 
-#### Handler
+| |Value
+|----|----
+|Bucket|Your Flyway migration bucket, e.g. "my-flyway"
+|Event type|`Object created`
+|Prefix|The Flyway migration files location, e.g. "my-application/"
+|Suffix|`sql`
 
-* `crossroad0201.aws.flywaylambda.S3EventMigrationHandler`  
-Run migration automatically when put SQL file into S3 bucket.
+### Bucket Structure
+The Lambda function expects the S3 bucket to be structured like this:
 
-* `crossroad0201.aws.flywaylambda.InvokeMigrationHandler` (Since 0.2.0)  
-Run migration invoke Lambda function yourself.
+```
+s3://my-flyway             <- Flyway migration bucket.
+  - /my-application        <- Flyway resource folder(prefix).
+    - flyway.conf          <- Flyway configuration file (optional)
+    - V1__create_foo.sql   <- SQL file(s)
+    - V2__create_bar.sql
+```
 
-#### Role
+## Running the Lambda
+### Using the S3EventMigrationHandler
 
-Require policies.
+* Put the Flyway SQL files into the migration folder (**one by one!**).
+* The Lambda function is invoked automatically by an S3 event.
+* Check `migration-result.json` in the S3 bucket for the results or CloudWatch logs for more detail.
 
-* AmazonRDSFullAccess
-* AmazonS3FullAccess
-* AWSLambdaVPCAccessExecutionRole
+### Using the InvokeMigrationHandler
 
-### Triggers
-
-Require setting trigger `S3 to Lambda` if using `S3EventMigrationHandler`.
-
-||value|Example|
-|----|----|----|
-|Bucket|Your Flyway migration bucket.|`my-flyway`|
-|Event type|`Object created`|-|
-|Prefix|Your Flyway migration files location.|`my-application/`|
-|Suffix|`sql`|-|
-
-
-# Setup by CloudFormation
-
-You can setup `flyway-awslambda` automatically using CloudFormation.  
-See sample templates in `src/main/aws`. 
-
-* `flyway-awslambda-x.x.x.jar` module put in your any bucket.
-
-* Create stack by template `1-rds.yaml`.
-Create RDS Aurora cluster.
-
-* Create stack by template `2-flyway-awslambda.yaml`.
-Create **flyway-awslambda** function.
-
-* Put `flyway.conf` configuration file in Flyway migration bucket.
-
-## Note
-
-* Require delete ENI(Elastic Network Interface) entry for VPC Lambda before delete stack `1-rds.yaml`.  
-A ENI entry for VPC Lambda create by stack `2-flyway-awslambda.yaml`, but this ENI entry does not delete automatically.
-
-
-# Supported Databases
-Only MySQL is supported out of the box. If another database is used it is recommended to make use of [Lambda Layers](https://docs.aws.amazon.com/lambda/latest/dg/configuration-layers.html).
-
-Here's how to:
-* Download the desired database driver's JAR file
-* Zip the JAR such that the jar is located in the java/lib folder, e.g. `java/lib/postgresql-42.2.6.jre7`
-* Create the Lambda layer (select the "Java 8" runtime) and assign it to the Lambda
-
-An example cloudformation template demonstrating a PostgreSQL setup via Lambda layers can be found in [/src/main/aws/3-postgres.yaml](./src/main/aws/3-postgres.yaml).
-
-# Run
-
-## Using S3EventMigrationHandler
-
-Put Flyway SQL file into S3 resource folder.(**one by one!!!**)
-
-Invoke flyway-lambda automatically by S3 event.
-
-Check `migration-result.json` in S3 resource folder for result,
-and CloudWatch log for more detail.
-
-## Using InvokeMigrationHandler
-
-Put Flyway SQL file(s) into S3 resource folder.
- 
-And invoke flyway-lambda function yourself with the following json payload.
+* Put the Flyway SQL files into the migration folder
+* Invoke the Lambda function manually with the following JSON payload.
 (invoke by AWS console, CLI, any application...etc. see [CLI example](./invoke_flywaylambda.sh))
 
 ```json
@@ -156,5 +85,27 @@ And invoke flyway-lambda function yourself with the following json payload.
 }
 ```
 
-Check result message or `migration-result.json` in S3 resource folder for result,
-and CloudWatch log for more detail.
+* Check `migration-result.json` in the S3 bucket for the results or CloudWatch logs for more detail.
+
+## Configuration
+The Lambda function can be configured either by way of a Flyway **configuration file** in the S3 bucket (1) or with 
+**environment variables** (2). In case no configuration file is found it is assumed that the function should be configured 
+via environment variables. Please note that the configuration method is a binary choice -- you can only pick one.
+
+1. **Configuration file**: For this configuration method place a [Flyway compliant config file](https://flywaydb.org/documentation/configfiles) 
+in the application folder along with the migration scrips.
+
+2. **Environment variables**: To configure the Lambda function via env vars it is crucial that no config 
+file is present in the bucket. The Lambda function passes the `FLYWAY_*` env vars directly through to the library. See 
+[the official documentation](https://flywaydb.org/documentation/envvars) for a list of supported env vars.
+
+
+## Supported Databases
+Only MySQL is supported out of the box. If another database is used it is recommended to make use of [Lambda Layers](https://docs.aws.amazon.com/lambda/latest/dg/configuration-layers.html).
+
+Here's how to:
+* Download the desired database driver's JAR file
+* Zip the JAR such that the jar is located in the java/lib folder, e.g. `java/lib/postgresql-42.2.6.jre7`
+* Create the Lambda layer (select the "Java 8" runtime) and assign it to the Lambda
+
+An example Cloudformation template demonstrating a PostgreSQL setup via Lambda layers can be found in [/src/main/aws/3-postgres.yaml](./src/main/aws/3-postgres.yaml).
