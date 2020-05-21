@@ -4,13 +4,13 @@
 
 > ℹ️ This fork of the (seemingly abandoned) [flyway-awslambda](crossroad0201/flyway-awslambda) project introduces 
 >the following improvements:
->* The Lambda function can be configured via environment variables
->* **All** Flyway configuration options are supported
->* Upgrade Flyway to version 6
+>* Flyway can be configured via the [officially supported environment variables](https://flywaydb.org/documentation/envvars) *(only config file was supported before)*
+>* **All** Flyway configuration options are supported *(only a small subset was supported before)*
+>* Upgrade Flyway to version 6 *(was 4)*
 >* Improved documentation and examples
 >
 >Other than possible breaking changes between Flyway 4 vs. 6 (I couldn't identify any) the Lambda function itself is 
->100% backwards compatible with the original project.
+>100% backwards compatible with the original project, i.e. the JAR can be put in place of the old function without breaking changes.
 
 ## How it works
 ![](docs/images/flyway-lambda.svg)
@@ -23,7 +23,7 @@
 4. A file containing the migration results is pushed to the bucket
 
 ## Setup
-*CloudFormation samples can be found under `./src/main/aws/`. Read on for the manual setup.* 
+> ℹ️ *CloudFormation samples can be found under `./src/main/aws/`. Read on for the manual setup.* 
 
 First, create a new Lambda function and upload the flyway-awslambda-x.y.z.jar file as code. You can either download a pre-built
 JAR file from the releases or build it yourself (Scala is required):
