@@ -3,12 +3,14 @@ name: Create release
 on:
   push:
     tags: "*"
-    
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - uses: olegtarasov/get-tag@v2
+      id: tag_name
     - uses: olafurpg/setup-scala@v5
     - name: Build JAR
       run: sbt assembly
@@ -21,12 +23,12 @@ jobs:
         tag_name: ${{ github.ref }}
         release_name: ${{ github.ref }}
     - name: Upload JAR
-      id: upload-jar 
+      id: upload-jar
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./target/scala-2.12/flyway-awslambda-${{ github.ref }}.jar
-        asset_name: flyway-awslambda-${{ github.ref }}.jar
+        asset_path: ./target/scala-2.12/flyway-awslambda-${{ steps.tag_name.outputs.tag }}.jar
+        asset_name: flyway-awslambda-${{ steps.tag_name.outputs.tag }}.jar
         asset_content_type: application/java-archive
