@@ -2,7 +2,7 @@
 
 **Run Flyway database migrations as a Lambda function.**
 
-> ℹ️ This fork of the (seemingly abandonded) [flyway-awslambda](crossroad0201/flyway-awslambda) project introduces 
+> ℹ️ This fork of the (seemingly abandoned) [flyway-awslambda](crossroad0201/flyway-awslambda) project introduces 
 >the following improvements:
 >* The Lambda function can be configured via environment variables
 >* **All** Flyway configuration options are supported
@@ -23,7 +23,7 @@
 4. A file containing the migration results is pushed to the bucket
 
 ## Setup
-*Cloudformation samples can be found under `./src/main/aws/`. Read on for the manual setup.* 
+*CloudFormation samples can be found under `./src/main/aws/`. Read on for the manual setup.* 
 
 First, create a new Lambda function and upload the flyway-awslambda-x.y.z.jar file as code. You can either download a pre-built
 JAR file from the releases or build it yourself (Scala is required):
@@ -108,4 +108,4 @@ Here's how to:
 * Zip the JAR such that the jar is located in the java/lib folder, e.g. `java/lib/postgresql-42.2.6.jre7`
 * Create the Lambda layer (select the "Java 8" runtime) and assign it to the Lambda
 
-An example Cloudformation template demonstrating a PostgreSQL setup via Lambda layers can be found in [/src/main/aws/3-postgres.yaml](./src/main/aws/3-postgres.yaml).
+An example CloudFormation template demonstrating a PostgreSQL setup via Lambda layers can be found in [/src/main/aws/3-postgres.yaml](./src/main/aws/3-postgres.yaml).
