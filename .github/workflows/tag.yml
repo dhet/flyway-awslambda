@@ -5,15 +5,12 @@ on:
     branch: tagging
 
 jobs:
-  build:
+  tag:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
     - name: Get previous tag
-      id: previoustag
-      uses: "WyriHaximus/github-action-get-previous-tag@master"
-      env:
-        GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      run: "git describe --tags $(git rev-list --tags --max-count=1)"
     - uses: olafurpg/setup-scala@v5
     - name: Get SBT version
       run: sbt version | tail -n 1 | awk '{print $2}'
