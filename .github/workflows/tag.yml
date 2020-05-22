@@ -5,10 +5,11 @@ on:
     branch: tagging
 
 jobs:
-  tag:
+  Tag:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout
+      uses: actions/checkout@v2
     # - name: Get previous tag
     #   run: "git describe --tags $(git rev-list --tags --max-count=1)"
     - uses: olafurpg/setup-scala@v5
@@ -16,6 +17,7 @@ jobs:
       id: current_version
       run: echo "::set-output name=current_version::$(sbt version | tail -n 1 | awk '{print $2}')"
     - name: Print version
+      if: ${{ steps.current_version.outputs.current_version == "0.4.1" }}"
       run: echo "Current version is ${{ steps.current_version.outputs.current_version }}"
     # - name: Upload JAR
     #   id: upload-jar
