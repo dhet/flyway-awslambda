@@ -5,13 +5,16 @@ on:
     tags: "*"
 
 jobs:
-  build:
+  Release:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - uses: olegtarasov/get-tag@v2
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Get git tag
+      uses: olegtarasov/get-tag@v2
       id: tag_name
-    - uses: olafurpg/setup-scala@v5
+    - name: Setup Scala
+      uses: olafurpg/setup-scala@v5
     - name: Build JAR
       run: sbt assembly
     - name: Create release

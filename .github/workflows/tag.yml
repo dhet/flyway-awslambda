@@ -1,0 +1,29 @@
+name: Create tag from SBT
+
+on:
+  push:
+    branch: master
+
+jobs:
+  Tag:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Get most recent tag
+      id: last_tag
+      uses: WyriHaximus/github-action-get-previous-tag@0.2.0
+      env:
+        GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+    - name: Setup Scala
+      uses: olafurpg/setup-scala@v5
+    - name: Get version from SBT file
+      id: sbt_version
+      run: echo "::set-output name=version::$(sbt version | tail -n 1 | awk '{print $2}')"
+    - name: Create tag
+      if: ${{ steps.sbt_version.outputs.version != steps.last_tag.outputs.tag }}
+      uses: richardsimko/update-tag@1.0.3
+      with:
+        tag_name: ${{ steps.sbt_version.outputs.version }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
