@@ -22,7 +22,7 @@ jobs:
       run: echo "::set-output name=version::$(sbt version | tail -n 1 | awk '{print $2}')"
     - name: Create tag
       if: ${{ steps.sbt_version.outputs.version != steps.last_tag.outputs.tag }}
-      uses: richardsimko/update-tag@1.0.3
+      uses: richardsimko/update-tag@v1.0.3
       with:
         tag_name: ${{ steps.sbt_version.outputs.version }}
       env:
